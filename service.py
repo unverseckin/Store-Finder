@@ -29,9 +29,10 @@ class StoreFinderService:
 
         response = {"NearestStores": []}
         for store, result in zip(selected_stores, solutions):
-            store_dict = vars(store)
-            DataPreparation.join_route_to_store(store_dict, result)
-            response["NearestStores"].append(store_dict)
+            if store.sapStoreID == result["store_id"]:
+                store_dict = vars(store)
+                DataPreparation.join_route_to_store(store_dict, result)
+                response["NearestStores"].append(store_dict)
 
         return response
 

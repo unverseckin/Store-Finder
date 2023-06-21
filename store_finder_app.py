@@ -21,7 +21,7 @@ def find_stores():
         client_location = StoreFinderRequest(
             client_location=Location(latitude=latitude, longitude=longitude)
             )
-        )
+
         response = StoreFinderService.find_nearest_stores(client_location)
 
     except ValueError:
