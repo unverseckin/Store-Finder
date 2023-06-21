@@ -36,6 +36,7 @@ class DataPreparation:
             route (dict): The route dictionary to be added.
 
         Returns:
-            None: The function does not return a value directly. It modifies the 'store' dictionary in-place."""
+            None: The function does not return a value directly. It modifies the 'store' dictionary in-place.
+        """
 
         store.update({"shortestPath": route})
