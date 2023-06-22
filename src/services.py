@@ -2,11 +2,11 @@ import requests
 import polyline
 from typing import List, Dict
 
-from configs import Configs
-from logics import Calculations
-from data import DataPreparation
-from validations import StoreFinderRequest, Location, Store
-from utils import Utils
+from src.configs import Configs
+from src.logics import Calculations
+from src.data import DataPreparation
+from src.validations import StoreFinderRequest, Location, Store
+from src.utils import Utils
 
 
 class StoreFinderService:
@@ -28,11 +28,12 @@ class StoreFinderService:
         solutions = StoreFinderService._get_routes_from_client_to_stores(client_location, selected_stores)
 
         response = {"NearestStores": []}
-        for store, result in zip(selected_stores, solutions):
-            if store.sapStoreID == result["store_id"]:
-                store_dict = vars(store)
-                DataPreparation.join_route_to_store(store_dict, result)
-                response["NearestStores"].append(store_dict)
+        for result in solutions:
+            for store in selected_stores:
+                if store.sapStoreID == result["store_id"]:
+                    store_dict = vars(store)
+                    DataPreparation.join_route_to_store(store_dict, result)
+                    response["NearestStores"].append(store_dict)
 
         return response
 
@@ -57,17 +58,21 @@ class StoreFinderService:
 
         response = requests.get(base_url + coordinates + "?sources=0&annotations=distance")
 
-        if response.status_code == 200:
+        if response.status_code != 200:
+            raise Exception("An error occurred while getting OSRM distances")
+
+        else:
             data = response.json()
             store_list_by_distance = [
                 (store, distance) for store, distance in zip(selected_nearby_stores, data["distances"][0][1:])
-                ] # we exclude index 0 since its the client location
+                ]  # we exclude index 0 since it is the client location
+
 
         sorted_store_list_by_distance = [
             store[0] for store in sorted(store_list_by_distance, key=Utils.take_distance)
             ]
 
-        return sorted_store_list_by_distance[0:Configs.DESIRED_NUMBER_OF_STORES_TO_FIND]
+        return sorted_store_list_by_distance[0:Configs.NUMBER_OF_POTENTIAL_STORES_TO_FIND]
 
     @staticmethod
     def _get_routes_from_client_to_stores(client_location: Location, selected_stores: List[Store]) -> List[dict]:
@@ -84,7 +89,6 @@ class StoreFinderService:
                        - 'start_point': The latitude and longitude of the starting point of the route.
                        - 'end_point': The latitude and longitude of the ending point of the route.
                        - 'distance': The distance of the route in meters.
-                   - 'store_id': The ID of the store.
         """
         base_url = "https://graphhopper.com/api/1/route"
 
@@ -109,7 +113,10 @@ class StoreFinderService:
                 # Send GET request to GraphHopper API
                 response = session.get(base_url, params=params)
 
-                if response.status_code == 200:
+                if response.status_code != 200:
+                    raise Exception("An error occurred while getting routes from Graphhopper")
+
+                else:
                     data = response.json()
 
                     routes = polyline.decode(data["paths"][0]["points"])
@@ -123,8 +130,6 @@ class StoreFinderService:
                                           'distance': distance,
                                            }
                                 })
-                else:
-                    print(f"Request failed with status code {response.status_code}")
             out.update({'store_id': store.sapStoreID})
             solutions.append(out)
 

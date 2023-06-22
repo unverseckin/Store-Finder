@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: Store Finder - Seckin Unver
+  version: 1.0.0
+  description: |-
+    This is a sample Store Finder for Jumbo Supermarkets. This API gives you the nearest Jumbo stores near by the provided location.
+
+    Some useful links:
+    - [Github repository](https://github.com/unverseckin/Store-Finder)
+    - [Live demo](https://seckinunver.pythonanywhere.com)
+servers:
+  - url: https://seckinunver.pythonanywhere.com
+paths:
+  /store-finder:
+    get:
+      tags:
+        - store-finder
+      summary: Returns nearest Jumbo stores
+      description: Provided a location, this endpoint returns nearest 5 Jumbo stores
+      operationId: findStores
+      parameters:
+        - name: latitude
+          in: query
+          description: Latitude of the user location
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          description: Longitude of the user location
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+        '400':
+          description: Invalid input
+components:
+  schemas:
+    Latitude:
+      type: number
+      format: float
+      example: 52.094965
+    Longitude:
+      type: number
+      format: float
+      example: 5.117816
+    Location:
+      type: object
+      properties:
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+    Path:
+      type: object
+      properties:
+        distance:
+          type: number
+          format: float
+          description: "distance in meters"
+          example: 686.946
+        end_point:
+          $ref: '#/components/schemas/Location'
+        route:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        start_point:
+          $ref: '#/components/schemas/Location'
+    Store:
+      type: object
+      properties:
+        addressName:
+          type: string
+          example: "Jumbo Utrecht Merelstraat"
+        city:
+          type: string
+          example: "Utrecht"
+        collectionPoint:
+          type: boolean
+          example: false
+        complexNumber:
+          type: integer
+          example: 31571
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        locationType:
+          example: "Supermarkt"
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+        postalCode:
+          type: string
+          example: "3514 CN"
+        sapStoreID:
+          type: integer
+          example: 4676
+        shortestPath:
+          type: object
+          properties:
+            bike:
+              $ref: '#/components/schemas/Path'
+            car:
+              $ref: '#/components/schemas/Path'
+            foot:
+              $ref: '#/components/schemas/Path'
+        showWarningMessage:
+          type: boolean
+          example: true
+        street:
+          type: string
+          example: "Merelstraat"
+          description: "street name"
+        street2:
+          type: string
+          example: "46A"
+          description: "street number"
+        street3:
+          type: string
+          example: "III"
+          description: "street number addition"
+        todayClose:
+          type: string
+          example: "22:00"
+          description: "store closing time for today"
+        todayOpen:
+          type: string
+          example: "07:00"
+          description: "store openning time for today"
+        uuid:
+          type: string
+          example: "ARcKYx4XJ5cAAAFIckMYwKxK"

@@ -11,7 +11,20 @@
     </head>
     <body>
         <h1>Store Finder</h1>
-        <p>Please select your location from the map below.</p>
+        <p>Please select your transport type and click on the map below to see the closest 5 stores.</p>
+        <p>To see a route in a different transport type, click on the map again after you select your transport type.</p>
+        <fieldset>
+            <p>Transport Type</p>
+            <div>
+                <label><input type="radio" name="type" value="bike" checked="checked" /> By Bike</label>
+            </div>
+            <div>
+                <label><input type="radio" name="type" value="car" /> By Car</label>
+            </div>
+            <div>
+                <label><input type="radio" name="type" value="foot" /> By Walk</label>
+            </div>
+        </fieldset>
         <div id="map" style="height: 400px;"></div>
         <script>
             const map = L.map('map').setView([51.6082395,5.5443285], 9);
@@ -56,6 +69,9 @@
                         return;
                     }
 
+                    // Get selected route type
+                    const routeType = document.querySelector('input[name="type"]:checked').value;
+
                     stores.forEach((store) => {
                         // Add markers for nearest stores
                         const JumboColor = '#EEB717';
@@ -72,17 +88,19 @@
                         marker.bindPopup(`
                             <b>${store.addressName}</b>
                             <br />${store.city}
-                            <br />${(store.shortestPath.distance / 1000).toFixed(2)} km
-                            <br />${store.street} ${store.street2}
-                            <br />${store.todayOpen} - ${store.todayClose}
+                            <br />${store.street} ${store.street2} ${store.street3}
+                            <br /> Distance: ${(store.shortestPath[routeType].distance / 1000).toFixed(2)} km by ${routeType}
+                            <br /> Opens at: ${store.todayOpen}
+                            <br /> Closes at: ${store.todayClose}
+                            <br /> Pick Up Point: ${store.collectionPoint ? 'Yes' : 'No'}
                         `);
 
                         // Draw route to the store on pop-up shown
                         let route_polyline;
                         marker.on('popupopen', () => {
-                            const route = [new L.LatLng(store.shortestPath.start_point[0], store.shortestPath.start_point[1]),
-                                ...store.shortestPath.route.map(point => new L.LatLng(point[0], point[1])),
-                                new L.LatLng(store.shortestPath.end_point[0], store.shortestPath.end_point[1])];
+                            const route = [new L.LatLng(store.shortestPath[routeType].start_point[0], store.shortestPath[routeType].start_point[1]),
+                                ...store.shortestPath[routeType].route.map(point => new L.LatLng(point[0], point[1])),
+                                new L.LatLng(store.shortestPath[routeType].end_point[0], store.shortestPath[routeType].end_point[1])];
 
                             route_polyline = new L.Polyline(route, {
                                 color: 'black',

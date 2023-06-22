@@ -1,9 +1,9 @@
 from typing import List
 from haversine import haversine
 
-from configs import Configs
-from validations import Location, Store
-from utils import Utils
+from src.configs import Configs
+from src.validations import Location, Store
+from src.utils import Utils
 
 
 class Calculations:

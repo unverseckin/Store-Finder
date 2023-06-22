@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from validations import Store
+from src.validations import Store
 
 
 class DataPreparation:
