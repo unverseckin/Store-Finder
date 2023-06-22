@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Store Finder by Seckin Unver</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+              crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                crossorigin=""></script>
+    </head>
+    <body>
+        <h1>Store Finder</h1>
+        <p>Please select your location from the map below.</p>
+        <div id="map" style="height: 400px;"></div>
+        <script>
+            const map = L.map('map').setView([51.6082395,5.5443285], 9);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            let customerLocationMarker = null;
+            let storeLocationMarkers = [];
+
+            map.on('click', async (event) => {
+                // Zoom to the section
+                map.setView(event.latlng, 13);
+
+                // Reset existing customer location
+                if (customerLocationMarker !== null) {
+                    map.removeLayer(customerLocationMarker);
+                }
+                // Put marker on clicked customer location
+                customerLocationMarker = L.marker([event.latlng.lat, event.latlng.lng]).addTo(map);
+
+                // Reset existing store date
+                if (storeLocationMarkers.length > 0) {
+                    storeLocationMarkers.forEach(storeLocationMarker => map.removeLayer(storeLocationMarker))
+                    storeLocationMarkers = [];
+                }
+
+                try {
+                    // Fetch nearest stores from API
+                    const request = await fetch(`https://seckinunver.pythonanywhere.com/store-finder?latitude=${event.latlng.lat}&longitude=${event.latlng.lng}`, {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    });
+                    const data = await request.json();
+                    const stores = data.NearestStores;
+
+                    if (!stores) {
+                        alert('No stores found!');
+                        return;
+                    }
+
+                    stores.forEach((store) => {
+                        // Add markers for nearest stores
+                        const JumboColor = '#EEB717';
+                        const marker = L.circle([store.latitude, store.longitude], {
+                            clickable: true,
+                            radius: 150,
+                            color: 'black',
+                            fillColor: JumboColor,
+                            fillOpacity: 0.5,
+                        }).addTo(map)
+                        storeLocationMarkers.push(marker);
+
+                        // Add detailed pop-up on click
+                        marker.bindPopup(`
+                            <b>${store.addressName}</b>
+                            <br />${store.city}
+                            <br />${(store.shortestPath.distance / 1000).toFixed(2)} km
+                            <br />${store.street} ${store.street2}
+                            <br />${store.todayOpen} - ${store.todayClose}
+                        `);
+
+                        // Draw route to the store on pop-up shown
+                        let route_polyline;
+                        marker.on('popupopen', () => {
+                            const route = [new L.LatLng(store.shortestPath.start_point[0], store.shortestPath.start_point[1]),
+                                ...store.shortestPath.route.map(point => new L.LatLng(point[0], point[1])),
+                                new L.LatLng(store.shortestPath.end_point[0], store.shortestPath.end_point[1])];
+
+                            route_polyline = new L.Polyline(route, {
+                                color: 'black',
+                                weight: 5,
+                                opacity: 1,
+                                smoothFactor: 1
+                            });
+                            route_polyline.addTo(map);
+                        })
+                        // Remove route on pop-up close
+                        marker.on('popupclose', () => map.removeLayer(route_polyline));
+                    });
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        </script>
+    </body>
+</html>

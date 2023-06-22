@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 from flask_cors import CORS
 from pyvalidator import is_lat_long
 
@@ -8,6 +8,10 @@ from utils import Utils
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/")
+def index():
+    return render_template('index.html')
 
 
 @app.route('/store-finder', methods=['GET'])

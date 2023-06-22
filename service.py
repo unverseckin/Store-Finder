@@ -71,7 +71,7 @@ class StoreFinderService:
 
     @staticmethod
     def _get_routes_from_client_to_stores(client_location: Location, selected_stores: List[Store]) -> List[dict]:
-        """Retrieve the shortest routes from the client's location to the selected stores.
+        """Retrieve the shortest routes by walking from the client's location to the selected stores.
         Args:
             client_location (Location): The location of the client.
             selected_stores (List[Store]): The list of selected stores.
@@ -79,43 +79,55 @@ class StoreFinderService:
         Returns:
             List[dict]: A list of dictionaries containing information about the shortest routes from the client to the stores.
                    Each dictionary contains the following keys:
-                   - 'route': A list of coordinates representing the polyline route.
-                   - 'start_point': The latitude and longitude of the starting point of the route.
-                   - 'end_point': The latitude and longitude of the ending point of the route.
-                   - 'distance': The distance of the route in meters.
+                   - 'profile': The vehicle profile of the route. It contains the following infos:
+                       - 'route': A list of coordinates representing the polyline route.
+                       - 'start_point': The latitude and longitude of the starting point of the route.
+                       - 'end_point': The latitude and longitude of the ending point of the route.
+                       - 'distance': The distance of the route in meters.
                    - 'store_id': The ID of the store.
         """
-        base_url = "http://router.project-osrm.org/route/v1/driving/"
+        base_url = "https://graphhopper.com/api/1/route"
+
+        api_key = "7fa0b8ef-9c94-49e9-9ca6-ff1b98be43a3"
 
         solutions = []
 
+        profiles = {"car", "bike", "foot"}
+
         session = requests.Session()
         for store in selected_stores:
-            # Send requests for shortest paths
-            coordinates = "{},{};{},{}".format(client_location.longitude,
-                                               client_location.latitude,
-                                               store.longitude,
-                                               store.latitude)
 
-            response = session.get(base_url + coordinates)
+            out = {}
+            for profile in profiles:
+                params = {
+                    "point": [f"{client_location.latitude},{client_location.longitude}", f"{store.latitude},{store.longitude}"],
+                    "vehicle": profile,
+                    "weighing": "shortest",
+                    "key": api_key
+                }
 
-            if response.status_code == 200:
-                data = response.json()
+                # Send GET request to GraphHopper API
+                response = session.get(base_url, params=params)
 
-                routes = polyline.decode(data['routes'][0]['geometry'])
-                start_point = [data['waypoints'][0]['location'][1], data['waypoints'][0]['location'][0]]
-                end_point = [data['waypoints'][1]['location'][1], data['waypoints'][1]['location'][0]]
-                distance = data['routes'][0]['distance']
+                if response.status_code == 200:
+                    data = response.json()
 
-                out = {'route': routes,
-                       'start_point': start_point,
-                       'end_point': end_point,
-                       'distance': distance,
-                       'store_id': store.sapStoreID,
-                       }
-                solutions.append(out)
-            else:
-                print(f"Request failed with status code {response.status_code}")
-        solutions.sort(key=lambda x: x["distance"])
+                    routes = polyline.decode(data["paths"][0]["points"])
+                    start_point = [client_location.latitude, client_location.longitude]
+                    end_point = [store.latitude, store.longitude]
+                    distance = data["paths"][0]['distance']
+
+                    out.update({profile: {'route': routes,
+                                          'start_point': start_point,
+                                          'end_point': end_point,
+                                          'distance': distance,
+                                           }
+                                })
+                else:
+                    print(f"Request failed with status code {response.status_code}")
+            out.update({'store_id': store.sapStoreID})
+            solutions.append(out)
+
+        solutions.sort(key=lambda x: x["foot"]["distance"])
 
         return solutions[0: Configs.DESIRED_NUMBER_OF_STORES_TO_FIND]
